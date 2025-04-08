@@ -13,3 +13,89 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+
+model User {
+  id           String     @id @default(uuid())
+  telegramId   String     @unique
+  username     String?
+  fullName     String?
+  chatId       String     @unique
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  projects     Project[]
+  servers      Server[]
+  deployments  Deployment[]
+}
+
+model Project {
+  id           String      @id @default(uuid())
+  name         String
+  githubRepo   String      // e.g. kishan/teledeploy
+  githubBranch String      @default("main")
+  githubToken  String?     // If you use API instead of webhook
+  webhookSecret String?
+
+  user         User        @relation(fields: [userId], references: [id])
+  userId       String
+
+  webhookEvents WebhookEvent[]
+  deployments  Deployment[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+}
+
+model Server {
+  id           String     @id @default(uuid())
+  name         String
+  ipAddress    String?
+  status       String     @default("active") // active/inactive/offline
+  osType       String?    // linux, ubuntu, etc.
+  authKey      String?    // Auth key to verify agent
+  lastSeen     DateTime?
+
+  user         User       @relation(fields: [userId], references: [id])
+  userId       String
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Deployment {
+  id           String     @id @default(uuid())
+  status       DeploymentStatus
+  commitHash   String
+  commitMsg    String?
+  triggeredBy  String?
+  deployedAt   DateTime?
+
+  user         User       @relation(fields: [userId], references: [id])
+  userId       String
+
+  project      Project    @relation(fields: [projectId], references: [id])
+  projectId    String
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model WebhookEvent {
+  id           String     @id @default(uuid())
+  eventType    String     // push, pull_request, etc.
+  payload      Json
+  receivedAt   DateTime   @default(now())
+
+  project      Project    @relation(fields: [projectId], references: [id])
+  projectId    String
+}
+
+enum DeploymentStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  RUNNING
+  SUCCESS
+  FAILED
+}
