@@ -11,18 +11,29 @@ dotenv.config();
 const app = express();
 const bot = new TelegramBot(process.env.BOT_TOKEN!, { polling: false });
 
-app.use(bodyParser.json());
+app.use(
+  bodyParser.json({
+    verify: (req: any, res, buf) => {
+      // Store the raw body buffer for signature verification
+      req.rawBody = buf;
+    },
+  })
+);
 
-function verifySignature(secret: string, payload: string, signature: string): boolean {
+function verifySignature(
+  secret: string,
+  payload: Buffer,
+  signature: string
+): boolean {
   const hmac = crypto.createHmac("sha256", secret);
   const digest = "sha256=" + hmac.update(payload).digest("hex");
   return crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(signature));
 }
 
-app.post("/api/webhook/github/:projectId", async (req : any, res  :any) => {
+app.post("/api/webhook/github/:projectId", async (req: any, res: any) => {
   const projectId = req.params.projectId;
-  const rawBody = JSON.stringify(req.body);
   const signature = req.headers["x-hub-signature-256"] as string;
+  const event = req.headers["x-github-event"] as string;
 
   try {
     const project = await prisma.project.findUnique({
@@ -34,24 +45,34 @@ app.post("/api/webhook/github/:projectId", async (req : any, res  :any) => {
       return res.status(404).send("Project not found");
     }
 
-    if (!verifySignature(project.webhookSecret, rawBody, signature)) {
+    if (!verifySignature(project.webhookSecret, req.rawBody, signature)) {
       return res.status(401).send("Invalid signature");
     }
 
-    const event = req.headers["x-github-event"] as string;
     const payload = req.body;
+    const rawBodyString = req.rawBody.toString();
 
-    // Log the webhook event
     await prisma.webhookEvent.create({
       data: {
         projectId: project.id,
         eventType: event,
-        payload: rawBody,
+        payload: rawBodyString,
       },
     });
 
-    // Simulate deploy logic here (e.g., pull code, restart server, etc.)
-    // In this placeholder, we'll just mark it successful
+    // Handle the "ping" event (sent when webhook is first configured)
+    if (event === "ping") {
+      // Send connection confirmation message
+      bot.sendMessage(
+        parseInt(project.user.chatId),
+        `✅ GitHub webhook successfully connected to *${project.name}*\n\n📦 Repo: \`${project.githubRepo}\`\n🔧 Webhook ID: \`${payload.hook.id}\``,
+        { parse_mode: "Markdown" }
+      );
+      
+      return res.status(200).send("Webhook connection successful");
+    }
+
+    // Handle regular deployment events (existing code)
     await prisma.deployment.create({
       data: {
         projectId: project.id,
@@ -61,7 +82,7 @@ app.post("/api/webhook/github/:projectId", async (req : any, res  :any) => {
       },
     });
 
-    // Notify user on Telegram
+    // Regular deployment notification
     bot.sendMessage(
       parseInt(project.user.chatId),
       `🚀 Deployment triggered for *${project.name}*\n\n📦 Repo: \`${project.githubRepo}\`\n🌿 Branch: \`${project.githubBranch}\`\n🔔 Event: \`${event}\``,
