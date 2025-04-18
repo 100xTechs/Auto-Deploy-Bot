@@ -22,12 +22,28 @@ app.use(
 
 function verifySignature(
   secret: string,
-  payload: Buffer,
-  signature: string
+  payload: Buffer | undefined,
+  signature: string | undefined
 ): boolean {
-  const hmac = crypto.createHmac("sha256", secret);
-  const digest = "sha256=" + hmac.update(payload).digest("hex");
-  return crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(signature));
+  // Add safety checks
+  if (!payload) {
+    console.error("Payload is undefined in verifySignature");
+    return false;
+  }
+  
+  if (!signature) {
+    console.error("Signature is undefined in verifySignature");
+    return false;
+  }
+
+  try {
+    const hmac = crypto.createHmac("sha256", secret);
+    const digest = "sha256=" + hmac.update(payload).digest("hex");
+    return crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(signature));
+  } catch (error) {
+    console.error("Error during signature verification:", error);
+    return false;
+  }
 }
 
 app.post("/api/webhook/github/:projectId", async (req: any, res: any) => {
@@ -35,6 +51,11 @@ app.post("/api/webhook/github/:projectId", async (req: any, res: any) => {
   const signature = req.headers["x-hub-signature-256"] as string;
   const event = req.headers["x-github-event"] as string;
 
+  // Add debug logging
+  console.log("Webhook received for project:", projectId);
+  console.log("Event type:", event);
+  console.log("Raw body exists:", !!req.rawBody);
+  
   try {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
@@ -43,6 +64,12 @@ app.post("/api/webhook/github/:projectId", async (req: any, res: any) => {
 
     if (!project || !project.webhookSecret) {
       return res.status(404).send("Project not found");
+    }
+
+    // Check if rawBody exists
+    if (!req.rawBody) {
+      console.error("Raw body is undefined - cannot verify signature");
+      return res.status(400).send("Missing raw body for signature verification");
     }
 
     if (!verifySignature(project.webhookSecret, req.rawBody, signature)) {

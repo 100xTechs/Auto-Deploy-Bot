@@ -29,14 +29,33 @@ app.use(body_parser_1.default.json({
     },
 }));
 function verifySignature(secret, payload, signature) {
-    const hmac = crypto_1.default.createHmac("sha256", secret);
-    const digest = "sha256=" + hmac.update(payload).digest("hex");
-    return crypto_1.default.timingSafeEqual(Buffer.from(digest), Buffer.from(signature));
+    // Add safety checks
+    if (!payload) {
+        console.error("Payload is undefined in verifySignature");
+        return false;
+    }
+    if (!signature) {
+        console.error("Signature is undefined in verifySignature");
+        return false;
+    }
+    try {
+        const hmac = crypto_1.default.createHmac("sha256", secret);
+        const digest = "sha256=" + hmac.update(payload).digest("hex");
+        return crypto_1.default.timingSafeEqual(Buffer.from(digest), Buffer.from(signature));
+    }
+    catch (error) {
+        console.error("Error during signature verification:", error);
+        return false;
+    }
 }
 app.post("/api/webhook/github/:projectId", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const projectId = req.params.projectId;
     const signature = req.headers["x-hub-signature-256"];
     const event = req.headers["x-github-event"];
+    // Add debug logging
+    console.log("Webhook received for project:", projectId);
+    console.log("Event type:", event);
+    console.log("Raw body exists:", !!req.rawBody);
     try {
         const project = yield globle_1.prisma.project.findUnique({
             where: { id: projectId },
@@ -44,6 +63,11 @@ app.post("/api/webhook/github/:projectId", (req, res) => __awaiter(void 0, void 
         });
         if (!project || !project.webhookSecret) {
             return res.status(404).send("Project not found");
+        }
+        // Check if rawBody exists
+        if (!req.rawBody) {
+            console.error("Raw body is undefined - cannot verify signature");
+            return res.status(400).send("Missing raw body for signature verification");
         }
         if (!verifySignature(project.webhookSecret, req.rawBody, signature)) {
             return res.status(401).send("Invalid signature");
