@@ -50,12 +50,16 @@ function verifySignature(secret, payload, signature) {
 }
 app.post("/api/webhook/github/:projectId", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const projectId = req.params.projectId;
-    const signature = req.headers["x-hub-signature-256"];
     const event = req.headers["x-github-event"];
-    // Add debug logging
+    // Try both signature formats that GitHub might send
+    const signature256 = req.headers["x-hub-signature-256"];
+    const signatureSha1 = req.headers["x-hub-signature"];
+    const signature = signature256 || signatureSha1;
+    // Log all headers to see what's actually coming in from GitHub
     console.log("Webhook received for project:", projectId);
     console.log("Event type:", event);
     console.log("Raw body exists:", !!req.rawBody);
+    console.log("Headers:", JSON.stringify(req.headers, null, 2));
     try {
         const project = yield globle_1.prisma.project.findUnique({
             where: { id: projectId },
@@ -68,6 +72,12 @@ app.post("/api/webhook/github/:projectId", (req, res) => __awaiter(void 0, void 
         if (!req.rawBody) {
             console.error("Raw body is undefined - cannot verify signature");
             return res.status(400).send("Missing raw body for signature verification");
+        }
+        // Check if signature exists
+        if (!signature) {
+            console.error("No signature header found in request");
+            console.error("Available headers:", Object.keys(req.headers).join(", "));
+            return res.status(400).send("Missing signature header");
         }
         if (!verifySignature(project.webhookSecret, req.rawBody, signature)) {
             return res.status(401).send("Invalid signature");
