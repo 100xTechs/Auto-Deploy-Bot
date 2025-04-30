@@ -65,7 +65,7 @@ bot.onText(/\/help/, (msg) => {
 /detail - View your user information
 /help - Show this help message
 /delete - Delete account
-/delete-project - Delete a project
+/delete_project - Delete a project
   `;
 
   bot.sendMessage(chatId, helpMessage);
@@ -98,6 +98,62 @@ bot.onText(/\/detail/, async (msg) => {
   } catch (error) {
     console.error(error);
     bot.sendMessage(chatId, "❌ Error occurred while fetching details.");
+  }
+});
+
+// /delete-project
+bot.onText(/\/delete_project/, async (msg) => {
+  const chatId = msg.chat.id.toString();
+  const telegramId = msg.from?.id.toString() || "";
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { telegramId },
+      include: { projects: true },
+    });
+
+    if (!user || user.projects.length === 0) {
+      return bot.sendMessage(chatId, "📭 No projects found.");
+    }
+
+    const buttons = user.projects.map((p) => [
+      {
+        text: `🗑️ ${p.name}`,
+        callback_data: `delete_project_${p.id}`,
+      },
+    ]);
+
+    bot.sendMessage(chatId, "📋 Select a project to delete:", {
+      reply_markup: {
+        inline_keyboard: buttons,
+      },
+    });
+
+    bot.on("callback_query", async (query) => {
+      if (query.data?.startsWith("delete_project_")) {
+        const projectId = query.data.split("_")[2];
+
+        try {
+          const project = await prisma.project.findUnique({
+            where: { id: projectId },
+          });
+
+          if (!project) {
+            return bot.sendMessage(chatId, "❌ Project not found.");
+          }
+
+          await prisma.project.delete({ where: { id: projectId } });
+
+          bot.sendMessage(chatId, `🗑️ Project "${project.name}" has been deleted.`);
+        } catch (error) {
+          console.error(error);
+          bot.sendMessage(chatId, "❌ Error occurred while deleting the project.");
+        }
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    bot.sendMessage(chatId, "❌ Error occurred while fetching projects.");
   }
 });
 
@@ -222,61 +278,7 @@ bot.onText(/\/projects/, async (msg) => {
   }
 });
 
-// /delete-project
-bot.onText(/\/delete-project/, async (msg) => {
-  const chatId = msg.chat.id.toString();
-  const telegramId = msg.from?.id.toString() || "";
 
-  try {
-    const user = await prisma.user.findUnique({
-      where: { telegramId },
-      include: { projects: true },
-    });
-
-    if (!user || user.projects.length === 0) {
-      return bot.sendMessage(chatId, "📭 No projects found.");
-    }
-
-    const buttons = user.projects.map((p) => [
-      {
-        text: `🗑️ ${p.name}`,
-        callback_data: `delete_project_${p.id}`,
-      },
-    ]);
-
-    bot.sendMessage(chatId, "📋 Select a project to delete:", {
-      reply_markup: {
-        inline_keyboard: buttons,
-      },
-    });
-
-    bot.on("callback_query", async (query) => {
-      if (query.data?.startsWith("delete_project_")) {
-        const projectId = query.data.split("_")[2];
-
-        try {
-          const project = await prisma.project.findUnique({
-            where: { id: projectId },
-          });
-
-          if (!project) {
-            return bot.sendMessage(chatId, "❌ Project not found.");
-          }
-
-          await prisma.project.delete({ where: { id: projectId } });
-
-          bot.sendMessage(chatId, `🗑️ Project "${project.name}" has been deleted.`);
-        } catch (error) {
-          console.error(error);
-          bot.sendMessage(chatId, "❌ Error occurred while deleting the project.");
-        }
-      }
-    });
-  } catch (error) {
-    console.error(error);
-    bot.sendMessage(chatId, "❌ Error occurred while fetching projects.");
-  }
-});
 
 // Handle project details via callback
 bot.on("callback_query", async (query) => {
