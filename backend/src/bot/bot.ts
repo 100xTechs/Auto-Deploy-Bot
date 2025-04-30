@@ -65,6 +65,7 @@ bot.onText(/\/help/, (msg) => {
 /detail - View your user information
 /help - Show this help message
 /delete - Delete account
+/delete-project - Delete a project
   `;
 
   bot.sendMessage(chatId, helpMessage);
