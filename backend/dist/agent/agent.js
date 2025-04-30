@@ -107,7 +107,34 @@ app.post("/api/webhook/github/:projectId", (req, res) => __awaiter(void 0, void 
             },
         });
         // Regular deployment notification
-        bot.sendMessage(parseInt(project.user.chatId), `🚀 Deployment triggered for *${project.name}*\n\n📦 Repo: \`${project.githubRepo}\`\n🌿 Branch: \`${project.githubBranch}\`\n🔔 Event: \`${event}\``, { parse_mode: "Markdown" });
+        bot.sendMessage(parseInt(project.user.chatId), `🚀 Deployment triggered for *${project.name}*\n\n📦 Repo: \`${project.githubRepo}\`\n🌿 Branch: \`${project.githubBranch}\`\n🔔 Event: \`${event}\``, {
+            parse_mode: "Markdown",
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        { text: "Deploy", callback_data: "deploy" },
+                        { text: "Deny", callback_data: "deny" }
+                    ]
+                ]
+            }
+        });
+        bot.on("callback_query", (query) => {
+            var _a, _b;
+            const userResponse = query.data; // "deploy" or "deny"
+            const userId = query.from.id;
+            const userName = query.from.username || query.from.first_name;
+            // Log the user response in a comment
+            console.log(`User ${userName} (${userId}) selected: ${userResponse}`);
+            // Respond to the user action
+            if (userResponse === "deploy") {
+                bot.sendMessage((_a = query.message) === null || _a === void 0 ? void 0 : _a.chat.id, "✅ Deployment approved and initiated.");
+            }
+            else if (userResponse === "deny") {
+                bot.sendMessage((_b = query.message) === null || _b === void 0 ? void 0 : _b.chat.id, "❌ Deployment denied.");
+            }
+            // Acknowledge the callback query
+            bot.answerCallbackQuery(query.id);
+        });
         res.status(200).send("Webhook received and processed");
     }
     catch (err) {
