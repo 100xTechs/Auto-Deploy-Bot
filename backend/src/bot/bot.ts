@@ -160,7 +160,7 @@ bot.onText(/\/addproject (.+)/, async (msg, match) => {
       },
     });
 
-    const webhookUrl = `http://localhost:4000/api/webhook/github/${project.id}`;
+    const webhookUrl = `https://api.autodeploybot.kishanvyas.tech/api/webhook/github/${project.id}`;
 
     const setupMsg = `
 ✅ *Project registered successfully!*
