@@ -1,0 +1,44 @@
+{
+  "name": "autodeploybot",
+  "version": "1.0.1",
+  "description": "A lightweight CLI agent to automate deploy and deny actions via Telegram and HTTP webhooks.",
+  "main": "bin/index.js",
+  "scripts": {
+    "start": "node ./bin/index.js start",
+    "init": "node ./bin/index.js init",
+    "dev": "nodemon ./bin/index.js start",
+    "test": "echo \"No tests yet\""
+  },
+  "bin": {
+    "autodeploybot": "./bin/index.js"
+  },
+  "keywords": [
+    "cli",
+    "deployment",
+    "devops",
+    "automation",
+    "webhook",
+    "telegram",
+    "bot",
+    "continuous-deployment"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KishanVyas308/Auto-Deploy-Bot"
+  },
+  "bugs": {
+    "url": "https://github.com/KishanVyas308/Auto-Deploy-Bot/issues"
+  },
+  "homepage": "https://github.com/KishanVyas308/Auto-Deploy-Bot#readme",
+  "author": "Kishan Vyas kishanvyas308@gmail.com",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
