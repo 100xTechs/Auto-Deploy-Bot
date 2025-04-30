@@ -8,7 +8,7 @@ module.exports = {
     onDeny: () => `
       echo "❌ Deploy Denied."
     `,
-    message: ({ branch, user }) =>
-      `🔔 ${user} pushed to branch ${branch}. Do you want to deploy?`,
+    message: ({ branch, user, action }) =>
+      `🔔 ${user} pushed to branch ${branch}. and the mode is ${action}`,
   };
   
