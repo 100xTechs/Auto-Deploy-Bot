@@ -55,10 +55,12 @@ bot.onText(/\/help/, (msg) => {
     const helpMessage = `
 🛠 Available Commands:
 /start - Register yourself
-/detail - View your user information
 /addproject <name> <repo> [branch] - Register a project
 /projects - List all your projects
+/detail - View your user information
 /help - Show this help message
+/delete - Delete account
+/delete-project - Delete a project
   `;
     bot.sendMessage(chatId, helpMessage);
 });
@@ -137,7 +139,7 @@ bot.onText(/\/addproject (.+)/, (msg, match) => __awaiter(void 0, void 0, void 0
                 userId: user.id,
             },
         });
-        const webhookUrl = `http://localhost:4000/api/webhook/github/${project.id}`;
+        const webhookUrl = `https://api.autodeploybot.kishanvyas.tech/api/webhook/github/${project.id}`;
         const setupMsg = `
 ✅ *Project registered successfully!*
 
@@ -190,13 +192,65 @@ bot.onText(/\/projects/, (msg) => __awaiter(void 0, void 0, void 0, function* ()
         bot.sendMessage(chatId, "❌ Error occurred while fetching projects.");
     }
 }));
+// /delete-project
+bot.onText(/\/delete-project/, (msg) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const chatId = msg.chat.id.toString();
+    const telegramId = ((_a = msg.from) === null || _a === void 0 ? void 0 : _a.id.toString()) || "";
+    try {
+        const user = yield globle_1.prisma.user.findUnique({
+            where: { telegramId },
+            include: { projects: true },
+        });
+        if (!user || user.projects.length === 0) {
+            return bot.sendMessage(chatId, "📭 No projects found.");
+        }
+        const buttons = user.projects.map((p) => [
+            {
+                text: `🗑️ ${p.name}`,
+                callback_data: `delete_project_${p.id}`,
+            },
+        ]);
+        bot.sendMessage(chatId, "📋 Select a project to delete:", {
+            reply_markup: {
+                inline_keyboard: buttons,
+            },
+        });
+        bot.on("callback_query", (query) => __awaiter(void 0, void 0, void 0, function* () {
+            var _a;
+            if ((_a = query.data) === null || _a === void 0 ? void 0 : _a.startsWith("delete_project_")) {
+                const projectId = query.data.split("_")[2];
+                try {
+                    const project = yield globle_1.prisma.project.findUnique({
+                        where: { id: projectId },
+                    });
+                    if (!project) {
+                        return bot.sendMessage(chatId, "❌ Project not found.");
+                    }
+                    yield globle_1.prisma.project.delete({ where: { id: projectId } });
+                    bot.sendMessage(chatId, `🗑️ Project "${project.name}" has been deleted.`);
+                }
+                catch (error) {
+                    console.error(error);
+                    bot.sendMessage(chatId, "❌ Error occurred while deleting the project.");
+                }
+            }
+        }));
+    }
+    catch (error) {
+        console.error(error);
+        bot.sendMessage(chatId, "❌ Error occurred while fetching projects.");
+    }
+}));
 // Handle project details via callback
 bot.on("callback_query", (query) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
     const chatId = (_a = query.message) === null || _a === void 0 ? void 0 : _a.chat.id.toString();
     const projectId = (_b = query.data) === null || _b === void 0 ? void 0 : _b.split("_")[1];
     try {
-        const project = yield globle_1.prisma.project.findUnique({ where: { id: projectId } });
+        const project = yield globle_1.prisma.project.findUnique({
+            where: { id: projectId },
+        });
         if (!project) {
             return bot.sendMessage(chatId, "❌ Project not found.");
         }
