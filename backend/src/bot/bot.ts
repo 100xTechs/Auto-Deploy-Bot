@@ -283,6 +283,10 @@ bot.onText(/\/projects/, async (msg) => {
 // Handle project details via callback
 bot.on("callback_query", async (query) => {
   const chatId = query.message?.chat.id.toString();
+
+  if (!query.data?.startsWith("project_")) {
+    return;
+  }
   const projectId = query.data?.split("_")[1];
 
   try {
