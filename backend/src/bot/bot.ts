@@ -282,38 +282,9 @@ bot.onText(/\/projects/, async (msg) => {
 
 // Handle project details via callback
 bot.on("callback_query", async (query) => {
-  const chatId = query.message?.chat.id.toString();
+  
 
-  if (!query.data?.startsWith("project_")) {
-    return;
-  }
-  const projectId = query.data?.split("_")[1];
-
-  try {
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-    });
-
-    if (!project) {
-      return bot.sendMessage(chatId!, "❌ Project not found.");
-    }
-
-    const projectDetails = `
-📦 *Project Details*:
-- Name: ${project.name}
-- GitHub Repo: ${project.githubRepo}
-- Branch: ${project.githubBranch}
-- Webhook Secret: \`${project.webhookSecret}\`
-    `;
-
-    bot.sendMessage(chatId!, projectDetails, { parse_mode: "Markdown" });
-  } catch (error) {
-    console.error(error);
-    bot.sendMessage(
-      chatId!,
-      "❌ Error occurred while fetching project details."
-    );
-  }
+  
 });
 
 console.log("🤖 Telegram bot is running...");

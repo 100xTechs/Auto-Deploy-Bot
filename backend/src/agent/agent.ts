@@ -30,7 +30,7 @@ function verifySignature(
     console.error("Payload is undefined in verifySignature");
     return false;
   }
-  
+
   if (!signature) {
     console.error("Signature is undefined in verifySignature");
     return false;
@@ -49,7 +49,7 @@ function verifySignature(
 app.post("/api/webhook/github/:projectId", async (req: any, res: any) => {
   const projectId = req.params.projectId;
   const event = req.headers["x-github-event"] as string;
-  
+
   // Try both signature formats that GitHub might send
   const signature256 = req.headers["x-hub-signature-256"] as string;
   const signatureSha1 = req.headers["x-hub-signature"] as string;
@@ -60,7 +60,7 @@ app.post("/api/webhook/github/:projectId", async (req: any, res: any) => {
   console.log("Event type:", event);
   console.log("Raw body exists:", !!req.rawBody);
   console.log("Headers:", JSON.stringify(req.headers, null, 2));
-  
+
   try {
     const project = await prisma.project.findUnique({
       where: { id: projectId },
@@ -74,9 +74,11 @@ app.post("/api/webhook/github/:projectId", async (req: any, res: any) => {
     // Check if rawBody exists
     if (!req.rawBody) {
       console.error("Raw body is undefined - cannot verify signature");
-      return res.status(400).send("Missing raw body for signature verification");
+      return res
+        .status(400)
+        .send("Missing raw body for signature verification");
     }
-    
+
     // Check if signature exists
     if (!signature) {
       console.error("No signature header found in request");
@@ -87,7 +89,6 @@ app.post("/api/webhook/github/:projectId", async (req: any, res: any) => {
     if (!verifySignature(project.webhookSecret, req.rawBody, signature)) {
       return res.status(401).send("Invalid signature");
     }
-    
 
     const payload = req.body;
     const rawBodyString = req.rawBody.toString();
@@ -108,7 +109,7 @@ app.post("/api/webhook/github/:projectId", async (req: any, res: any) => {
         `✅ GitHub webhook successfully connected to *${project.name}*\n\n📦 Repo: \`${project.githubRepo}\`\n🔧 Webhook ID: \`${payload.hook.id}\``,
         { parse_mode: "Markdown" }
       );
-      
+
       return res.status(200).send("Webhook connection successful");
     }
 
@@ -132,14 +133,45 @@ app.post("/api/webhook/github/:projectId", async (req: any, res: any) => {
           inline_keyboard: [
             [
               { text: "Deploy", callback_data: "deploy" },
-              { text: "Deny", callback_data: "deny" }
-            ]
-          ]
-        }
+              { text: "Deny", callback_data: "deny" },
+            ],
+          ],
+        },
       }
     );
 
-    bot.on("callback_query", (query) => {
+    bot.on("callback_query", async (query) => {
+      if (query.data?.startsWith("project_")) {
+        const chatId = query.message?.chat.id.toString();
+        const projectId = query.data?.split("_")[1];
+
+        try {
+          const project = await prisma.project.findUnique({
+            where: { id: projectId },
+          });
+
+          if (!project) {
+            return bot.sendMessage(chatId!, "❌ Project not found.");
+          }
+
+          const projectDetails = `
+        📦 *Project Details*:
+        - Name: ${project.name}
+        - GitHub Repo: ${project.githubRepo}
+        - Branch: ${project.githubBranch}
+        - Webhook Secret: \`${project.webhookSecret}\`
+    `;
+
+          bot.sendMessage(chatId!, projectDetails, { parse_mode: "Markdown" });
+        } catch (error) {
+          console.error(error);
+          bot.sendMessage(
+            chatId!,
+            "❌ Error occurred while fetching project details."
+          );
+        }
+      }
+
       const userResponse = query.data; // "deploy" or "deny"
       const userId = query.from.id;
       const userName = query.from.username || query.from.first_name;
@@ -154,10 +186,7 @@ app.post("/api/webhook/github/:projectId", async (req: any, res: any) => {
           "✅ Deployment approved and initiated."
         );
       } else if (userResponse === "deny") {
-        bot.sendMessage(
-          query.message?.chat.id!,
-          "❌ Deployment denied."
-        );
+        bot.sendMessage(query.message?.chat.id!, "❌ Deployment denied.");
       }
 
       // Acknowledge the callback query

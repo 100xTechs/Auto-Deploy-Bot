@@ -71,7 +71,9 @@ app.post("/api/webhook/github/:projectId", (req, res) => __awaiter(void 0, void 
         // Check if rawBody exists
         if (!req.rawBody) {
             console.error("Raw body is undefined - cannot verify signature");
-            return res.status(400).send("Missing raw body for signature verification");
+            return res
+                .status(400)
+                .send("Missing raw body for signature verification");
         }
         // Check if signature exists
         if (!signature) {
@@ -113,13 +115,37 @@ app.post("/api/webhook/github/:projectId", (req, res) => __awaiter(void 0, void 
                 inline_keyboard: [
                     [
                         { text: "Deploy", callback_data: "deploy" },
-                        { text: "Deny", callback_data: "deny" }
-                    ]
-                ]
-            }
+                        { text: "Deny", callback_data: "deny" },
+                    ],
+                ],
+            },
         });
-        bot.on("callback_query", (query) => {
-            var _a, _b;
+        bot.on("callback_query", (query) => __awaiter(void 0, void 0, void 0, function* () {
+            var _a, _b, _c, _d, _e;
+            if ((_a = query.data) === null || _a === void 0 ? void 0 : _a.startsWith("project_")) {
+                const chatId = (_b = query.message) === null || _b === void 0 ? void 0 : _b.chat.id.toString();
+                const projectId = (_c = query.data) === null || _c === void 0 ? void 0 : _c.split("_")[1];
+                try {
+                    const project = yield globle_1.prisma.project.findUnique({
+                        where: { id: projectId },
+                    });
+                    if (!project) {
+                        return bot.sendMessage(chatId, "❌ Project not found.");
+                    }
+                    const projectDetails = `
+        📦 *Project Details*:
+        - Name: ${project.name}
+        - GitHub Repo: ${project.githubRepo}
+        - Branch: ${project.githubBranch}
+        - Webhook Secret: \`${project.webhookSecret}\`
+    `;
+                    bot.sendMessage(chatId, projectDetails, { parse_mode: "Markdown" });
+                }
+                catch (error) {
+                    console.error(error);
+                    bot.sendMessage(chatId, "❌ Error occurred while fetching project details.");
+                }
+            }
             const userResponse = query.data; // "deploy" or "deny"
             const userId = query.from.id;
             const userName = query.from.username || query.from.first_name;
@@ -127,14 +153,14 @@ app.post("/api/webhook/github/:projectId", (req, res) => __awaiter(void 0, void 
             console.log(`User ${userName} (${userId}) selected: ${userResponse}`);
             // Respond to the user action
             if (userResponse === "deploy") {
-                bot.sendMessage((_a = query.message) === null || _a === void 0 ? void 0 : _a.chat.id, "✅ Deployment approved and initiated.");
+                bot.sendMessage((_d = query.message) === null || _d === void 0 ? void 0 : _d.chat.id, "✅ Deployment approved and initiated.");
             }
             else if (userResponse === "deny") {
-                bot.sendMessage((_b = query.message) === null || _b === void 0 ? void 0 : _b.chat.id, "❌ Deployment denied.");
+                bot.sendMessage((_e = query.message) === null || _e === void 0 ? void 0 : _e.chat.id, "❌ Deployment denied.");
             }
             // Acknowledge the callback query
             bot.answerCallbackQuery(query.id);
-        });
+        }));
         res.status(200).send("Webhook received and processed");
     }
     catch (err) {
