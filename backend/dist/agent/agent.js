@@ -143,7 +143,7 @@ app.post("/api/webhook/github/:projectId", (req, res) => __awaiter(void 0, void 
                 }
                 catch (error) {
                     console.error(error);
-                    bot.sendMessage(chatId, "❌ Error occurred while fetching project details.");
+                    bot.sendMessage(chatId, "❌ Error occurred while fetching project details." + error);
                 }
             }
             const userResponse = query.data; // "deploy" or "deny"
