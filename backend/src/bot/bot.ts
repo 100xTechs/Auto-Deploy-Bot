@@ -5,7 +5,14 @@ import crypto from "crypto";
 
 dotenv.config();
 
-const bot = new TelegramBot(process.env.BOT_TOKEN!, { polling: true });
+if (!process.env.BOT_TOKEN) {
+  throw new Error("BOT_TOKEN is not set in environment variables.");
+}
+
+
+const bot = new TelegramBot(process.env.BOT_TOKEN!,
+   { polling: true }
+  );
 
 // /start - Register user and provide command details
 bot.onText(/\/start/, async (msg) => {
@@ -144,10 +151,16 @@ bot.onText(/\/delete_project/, async (msg) => {
 
           await prisma.project.delete({ where: { id: projectId } });
 
-          bot.sendMessage(chatId, `🗑️ Project "${project.name}" has been deleted.`);
+          bot.sendMessage(
+            chatId,
+            `🗑️ Project "${project.name}" has been deleted.`
+          );
         } catch (error) {
           console.error(error);
-          bot.sendMessage(chatId, "❌ Error occurred while deleting the project.");
+          bot.sendMessage(
+            chatId,
+            "❌ Error occurred while deleting the project."
+          );
         }
       }
     });
@@ -276,15 +289,6 @@ bot.onText(/\/projects/, async (msg) => {
     console.error(error);
     bot.sendMessage(chatId, "❌ Error occurred while fetching projects.");
   }
-});
-
-
-
-// Handle project details via callback
-bot.on("callback_query", async (query) => {
-  
-
-  
 });
 
 console.log("🤖 Telegram bot is running...");

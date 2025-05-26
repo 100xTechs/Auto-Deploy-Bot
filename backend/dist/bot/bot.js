@@ -17,6 +17,9 @@ const node_telegram_bot_api_1 = __importDefault(require("node-telegram-bot-api")
 const dotenv_1 = __importDefault(require("dotenv"));
 const crypto_1 = __importDefault(require("crypto"));
 dotenv_1.default.config();
+if (!process.env.BOT_TOKEN) {
+    throw new Error("BOT_TOKEN is not set in environment variables.");
+}
 const bot = new node_telegram_bot_api_1.default(process.env.BOT_TOKEN, { polling: true });
 // /start - Register user and provide command details
 bot.onText(/\/start/, (msg) => __awaiter(void 0, void 0, void 0, function* () {
@@ -241,8 +244,5 @@ bot.onText(/\/projects/, (msg) => __awaiter(void 0, void 0, void 0, function* ()
         console.error(error);
         bot.sendMessage(chatId, "❌ Error occurred while fetching projects.");
     }
-}));
-// Handle project details via callback
-bot.on("callback_query", (query) => __awaiter(void 0, void 0, void 0, function* () {
 }));
 console.log("🤖 Telegram bot is running...");

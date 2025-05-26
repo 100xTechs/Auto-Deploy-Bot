@@ -167,7 +167,7 @@ app.post("/api/webhook/github/:projectId", async (req: any, res: any) => {
           console.error(error);
           bot.sendMessage(
             chatId!,
-            "❌ Error occurred while fetching project details."
+            "❌ Error occurred while fetching project details." + error
           );
         }
       }
