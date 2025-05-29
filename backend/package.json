@@ -5,24 +5,19 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsc -b && concurrently \"node dist/bot/bot.js\" \"node dist/agent/agent.js\"",
-    "build": "concurrently \"node dist/bot/bot.js\" \"node dist/agent/agent.js\""
+    "dev": "tsc -b && node dist/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@types/node-telegram-bot-api": "^0.64.8",
-    "concurrently": "^9.1.2",
-    "prisma": "^6.6.0"
-  },
   "dependencies": {
-    "@prisma/client": "^6.8.2",
-    "@types/express": "^5.0.1",
+    "@types/body-parser": "^1.19.5",
+    "@types/cors": "^2.8.18",
+    "@types/express": "^5.0.2",
+    "axios": "^1.9.0",
     "body-parser": "^2.2.0",
-    "dotenv": "^16.4.7",
-    "express": "^5.1.0",
-    "node-telegram-bot-api": "^0.66.0"
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0"
   }
 }
