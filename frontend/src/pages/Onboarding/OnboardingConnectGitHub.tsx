@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Github, CheckCircle, ArrowRight, Shield, Users, Zap, Search, Star, GitFork, Eye, Calendar, Filter, ChevronDown, Loader2, Lock, Globe } from 'lucide-react';
+import { Github, CheckCircle, ArrowRight, Shield, Users, Zap, Search, Star, GitFork, Calendar, ChevronDown, Loader2, Lock, Globe } from 'lucide-react';
 import axios from 'axios';
 import type { GitHubUser, GitHubRepository } from '../../utilities/types';
 import { BACKEND_URL } from '../../utilities/globle'; // Ensure types are imported
