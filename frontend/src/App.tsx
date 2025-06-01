@@ -1,15 +1,15 @@
-import { useState } from 'react'
-import { BrowserRouter, Route, Routes, Link } from 'react-router-dom'
-import Register from './pages/auth/register'
+import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom'
+import Register from './pages/auth/Register'
+import Login from './pages/auth/Login'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/"  />
-        <Route path='/register' element={<Register />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        {/* Add more routes here as needed */}
       </Routes>
     </BrowserRouter>
   )
