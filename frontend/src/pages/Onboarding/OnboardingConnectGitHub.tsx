@@ -1,16 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Github, CheckCircle, ArrowRight, Shield, Users, Zap, Search, Star, GitFork, Calendar, ChevronDown, Loader2, Lock, Globe } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Github, CheckCircle, ArrowRight, Shield, Users, Zap, Search, Star, GitFork, Calendar, ChevronDown, Lock, Globe } from 'lucide-react';
 import axios from 'axios';
 import type { GitHubUser, GitHubRepository } from '../../utilities/types';
-import { BACKEND_URL } from '../../utilities/globle'; // Ensure types are imported
+import { BACKEND_URL } from '../../utilities/globle';
 
 
 
 const OnboardingConnectGitHub = () => {
+  const navigate = useNavigate();
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const [user, setUser] = useState<GitHubUser | null>(null);
-  const [selectedRepos, setSelectedRepos] = useState<string[]>([]);
+  const [user, setUser] = useState<GitHubUser | null>(null);  const [selectedRepo, setSelectedRepo] = useState<string>('');
   const [repositories, setRepositories] = useState<GitHubRepository[]>([]);
   const [isLoadingRepos, setIsLoadingRepos] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -18,7 +19,7 @@ const OnboardingConnectGitHub = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [filterType, setFilterType] = useState<'all' | 'public' | 'private'>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const reposPerPage = 10;
+  const reposPerPage = 8;
 
   // Fetch repositories from GitHub API
   const fetchRepositories = async (username: string) => {
@@ -102,14 +103,8 @@ const OnboardingConnectGitHub = () => {
     window.location.assign("https://github.com/login/oauth/authorize?client_id=" + import.meta.env.VITE_GITHUB_CLIENT_ID + "&scope=repo,user");
 
     setIsConnecting(false);
-  };
-
-  const handleRepoSelect = (repoName: string) => {
-    setSelectedRepos(prev =>
-      prev.includes(repoName)
-        ? prev.filter(name => name !== repoName)
-        : [...prev, repoName]
-    );
+  };  const handleRepoSelect = (repoName: string) => {
+    setSelectedRepo(repoName === selectedRepo ? '' : repoName);
   };
 
   // Filter and sort repositories
@@ -156,14 +151,19 @@ const OnboardingConnectGitHub = () => {
     return filteredAndSortedRepos.slice(startIndex, startIndex + reposPerPage);
   }, [filteredAndSortedRepos, currentPage, reposPerPage]);
 
-  const totalPages = Math.ceil(filteredAndSortedRepos.length / reposPerPage);
-
-  const formatDate = (dateString: string) => {
+  const totalPages = Math.ceil(filteredAndSortedRepos.length / reposPerPage);  const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
+  };
+  const handleContinueToProjectSetup = () => {
+    if (selectedRepo) {
+      // Store selected repo in localStorage for next step
+      localStorage.setItem('selectedRepo', selectedRepo);
+      navigate('/onboarding/project-setup');
+    }
   };
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -312,133 +312,264 @@ const OnboardingConnectGitHub = () => {
               </div>
             </div>
           </div>          {/* Repository Selection */}
-          <div className="card-glow p-6">
-            <h3 className="text-lg font-bold text-white mb-4 glow-text">Select Repositories</h3>
-            <p className="text-gray-300 mb-6">
-              Choose which repositories you'd like to set up for deployment. You can add more later.
-            </p>
-
-            {/* Search and Filter Controls */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-              {/* Search */}
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search repositories..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-              </div>
-
-              {/* Filter Dropdown */}
-              <div className="relative">
-                <select
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value as 'all' | 'public' | 'private')}
-                  className="appearance-none bg-gray-800/50 border border-gray-600 rounded-lg px-4 py-2 pr-8 text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  <option value="all">All Repositories</option>
-                  <option value="public">Public Only</option>
-                  <option value="private">Private Only</option>
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-              </div>
-
-              {/* Sort Dropdown */}
-              <div className="relative">
-                <select
-                  value={`${sortBy}-${sortOrder}`}
-                  onChange={(e) => {
-                    const [sort, order] = e.target.value.split('-');
-                    setSortBy(sort as 'name' | 'stars' | 'updated' | 'created');
-                    setSortOrder(order as 'asc' | 'desc');
-                  }}
-                  className="appearance-none bg-gray-800/50 border border-gray-600 rounded-lg px-4 py-2 pr-8 text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  <option value="updated-desc">Recently Updated</option>
-                  <option value="created-desc">Recently Created</option>
-                  <option value="name-asc">Name A-Z</option>
-                  <option value="name-desc">Name Z-A</option>
-                  <option value="stars-desc">Most Stars</option>
-                  <option value="stars-asc">Least Stars</option>
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-              </div>
+          <div className="card-glow p-8">
+            <div className="text-center mb-8">
+              <h3 className="text-2xl font-bold text-white mb-3 glow-text">Choose Your Repository</h3>
+              <p className="text-gray-300 text-lg max-w-2xl mx-auto">
+                Select one repository to get started with automated deployments. You can add more repositories later from your dashboard.
+              </p>
             </div>
 
-            {/* Repository List */}
+            {/* Search and Filter Bar */}
+            <div className="bg-gray-800/30 rounded-xl p-6 mb-8 border border-gray-700/50">
+              <div className="flex flex-col lg:flex-row gap-4">
+                {/* Search */}
+                <div className="relative flex-1">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search your repositories..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 bg-gray-900/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 hover:border-gray-500 transition-all duration-300 text-sm font-medium"
+                  />
+                </div>
+
+                {/* Filter Controls */}
+                <div className="flex gap-3">
+                  <div className="relative">
+                    <select
+                      value={filterType}
+                      onChange={(e) => setFilterType(e.target.value as 'all' | 'public' | 'private')}
+                      className="appearance-none bg-gray-900/50 border border-gray-600 rounded-xl px-4 py-3 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 hover:border-gray-500 transition-all duration-300 min-w-[140px] text-sm font-medium"
+                    >
+                      <option value="all">All Repos</option>
+                      <option value="public">Public</option>
+                      <option value="private">Private</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                  </div>
+
+                  <div className="relative">
+                    <select
+                      value={`${sortBy}-${sortOrder}`}
+                      onChange={(e) => {
+                        const [sort, order] = e.target.value.split('-');
+                        setSortBy(sort as 'name' | 'stars' | 'updated' | 'created');
+                        setSortOrder(order as 'asc' | 'desc');
+                      }}
+                      className="appearance-none bg-gray-900/50 border border-gray-600 rounded-xl px-4 py-3 pr-10 text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 hover:border-gray-500 transition-all duration-300 min-w-[160px] text-sm font-medium"
+                    >
+                      <option value="updated-desc">Recently Updated</option>
+                      <option value="created-desc">Recently Created</option>
+                      <option value="name-asc">Name A-Z</option>
+                      <option value="name-desc">Name Z-A</option>
+                      <option value="stars-desc">Most Stars</option>
+                      <option value="stars-asc">Least Stars</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Search Results Summary */}
+              {searchTerm && (
+                <div className="mt-4 p-3 bg-primary-500/10 border border-primary-500/30 rounded-lg">
+                  <p className="text-sm text-primary-300 font-medium">
+                    Found {filteredAndSortedRepos.length} repositories matching "{searchTerm}"
+                  </p>
+                </div>
+              )}
+            </div>            {/* Repository List */}
             {isLoadingRepos ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
-                <span className="ml-3 text-gray-300">Loading repositories...</span>
+              <div className="flex flex-col items-center justify-center py-20 bg-gray-800/20 rounded-xl border border-gray-700/50">
+                <div className="relative mb-6">
+                  <div className="w-16 h-16 border-4 border-primary-500/20 border-t-primary-500 rounded-full animate-spin"></div>
+                  <div className="absolute inset-2 w-12 h-12 border-4 border-primary-400/10 border-t-primary-400 rounded-full animate-spin animate-reverse"></div>
+                </div>
+                <h4 className="text-lg font-semibold text-white mb-2">Loading Your Repositories</h4>
+                <p className="text-gray-400 text-center max-w-md">
+                  We're fetching your repositories from GitHub. This might take a moment...
+                </p>
+              </div>
+            ) : paginatedRepos.length === 0 ? (
+              <div className="text-center py-20 bg-gray-800/20 rounded-xl border border-gray-700/50">
+                <Github className="h-16 w-16 mx-auto mb-4 text-gray-500" />
+                <h4 className="text-lg font-semibold text-white mb-2">No Repositories Found</h4>
+                <p className="text-gray-400 max-w-md mx-auto">
+                  {searchTerm 
+                    ? `No repositories match "${searchTerm}". Try adjusting your search or filters.`
+                    : "You don't have any repositories yet. Create one on GitHub to get started!"
+                  }
+                </p>
               </div>
             ) : (
               <>
-                <div className="space-y-3 mb-6">
-                  {paginatedRepos.length === 0 ? (
-                    <div className="text-center py-8 text-gray-400">
-                      <Github className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                      <p>No repositories found matching your criteria.</p>
+                {/* Repository Grid */}
+                <div className="grid gap-4 mb-8">
+                  {paginatedRepos.map((repo) => (
+                    <div
+                      key={repo.id}
+                      onClick={() => handleRepoSelect(repo.name)}
+                      className={`group relative cursor-pointer transition-all duration-300 ${
+                        selectedRepo === repo.name
+                          ? 'transform scale-[1.02]'
+                          : 'hover:transform hover:scale-[1.01]'
+                      }`}
+                    >
+                      <div
+                        className={`relative p-6 rounded-xl border-2 transition-all duration-300 ${
+                          selectedRepo === repo.name
+                            ? 'border-primary-400 bg-primary-500/10 shadow-lg shadow-primary-500/25 ring-1 ring-primary-400/50'
+                            : 'border-gray-600/50 bg-gray-800/30 hover:border-primary-500/50 hover:bg-gray-800/50 hover:shadow-md hover:shadow-primary-500/10'
+                        }`}
+                      >
+                        {/* Selection Indicator */}
+                        <div className={`absolute top-4 right-4 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                          selectedRepo === repo.name
+                            ? 'border-primary-400 bg-primary-500 shadow-lg shadow-primary-500/50'
+                            : 'border-gray-500 bg-gray-800 group-hover:border-primary-400'
+                        }`}>
+                          {selectedRepo === repo.name && (
+                            <CheckCircle className="w-4 h-4 text-white" />
+                          )}
+                        </div>
+
+                        {/* Repository Header */}
+                        <div className="mb-4">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <Github className={`h-6 w-6 ${
+                              selectedRepo === repo.name ? 'text-primary-400' : 'text-gray-400 group-hover:text-primary-400'
+                            } transition-colors duration-300`} />
+                            <h3 className={`text-xl font-bold ${
+                              selectedRepo === repo.name ? 'text-white' : 'text-gray-200 group-hover:text-white'
+                            } transition-colors duration-300`}>
+                              {repo.name}
+                            </h3>
+                            {repo.private ? (
+                              <div className="flex items-center space-x-1 px-2 py-1 bg-amber-500/20 border border-amber-500/30 rounded-lg">
+                                <Lock className="h-3 w-3 text-amber-400" />
+                                <span className="text-xs font-medium text-amber-300">Private</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center space-x-1 px-2 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded-lg">
+                                <Globe className="h-3 w-3 text-emerald-400" />
+                                <span className="text-xs font-medium text-emerald-300">Public</span>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {repo.description && (
+                            <p className="text-gray-400 text-sm leading-relaxed line-clamp-2">
+                              {repo.description}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Repository Stats */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-6">
+                            {repo.language && (
+                              <div className="flex items-center space-x-2">
+                                <div className="w-3 h-3 rounded-full bg-primary-500"></div>
+                                <span className="text-sm text-gray-300 font-medium">{repo.language}</span>
+                              </div>
+                            )}
+                            
+                            <div className="flex items-center space-x-1 text-gray-400">
+                              <Star className="h-4 w-4" />
+                              <span className="text-sm font-medium">{repo.stargazers_count}</span>
+                            </div>
+                            
+                            <div className="flex items-center space-x-1 text-gray-400">
+                              <GitFork className="h-4 w-4" />
+                              <span className="text-sm font-medium">{repo.forks_count}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="text-xs text-gray-500">
+                            Updated {formatDate(repo.updated_at)}
+                          </div>
+                        </div>
+
+                        {/* Hover Overlay */}
+                        <div className={`absolute inset-0 rounded-xl transition-opacity duration-300 ${
+                          selectedRepo === repo.name 
+                            ? 'bg-primary-500/5 opacity-100' 
+                            : 'bg-primary-500/5 opacity-0 group-hover:opacity-100'
+                        }`}></div>
+                      </div>
                     </div>
-                  ) : (
+                  ))}
+                </div>) : ({
+
+                
                     paginatedRepos.map((repo) => (
                       <div
                         key={repo.id}
-                        className={`border rounded-lg p-4 cursor-pointer transition-all duration-200 ${
-                          selectedRepos.includes(repo.name)
-                            ? 'border-primary-500 bg-primary-500/10 shadow-lg shadow-primary-500/20'
-                            : 'border-gray-600 hover:border-gray-500 bg-gray-800/30'
+                        className={`border rounded-lg p-4 transition-all duration-200 hover:shadow-lg ${
+                          selectedRepo.includes(repo.name)
+                            ? 'border-primary-400 bg-primary-500/10 shadow-lg shadow-primary-500/20 ring-1 ring-primary-400/50'
+                            : 'border-gray-600 hover:border-gray-500 bg-gray-800/30 hover:bg-gray-800/50'
                         }`}
-                        onClick={() => handleRepoSelect(repo.name)}
                       >
                         <div className="flex items-start justify-between">
-                          <div className="flex items-start space-x-3">
+                          <div className="flex items-start space-x-3 flex-1">
                             <input
                               type="checkbox"
-                              checked={selectedRepos.includes(repo.name)}
-                              onChange={() => handleRepoSelect(repo.name)}
-                              className="h-4 w-4 text-primary-500 rounded border-gray-500 bg-gray-700 focus:ring-primary-500 mt-1"
+                              checked={selectedRepo.includes(repo.name)}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                handleRepoSelect(repo.name);
+                              }}
+                              className="h-4 w-4 text-primary-500 rounded border-gray-500 bg-gray-700 focus:ring-primary-500 focus:ring-2 mt-1 cursor-pointer"
                             />
-                            <div className="flex-1">
+                            <div 
+                              className="flex-1 cursor-pointer"
+                              onClick={() => handleRepoSelect(repo.name)}
+                            >
                               <div className="flex items-center space-x-2 mb-1">
-                                <span className="font-medium text-white text-lg">{repo.name}</span>
+                                <span className="font-medium text-white text-lg hover:text-primary-300 transition-colors">{repo.name}</span>
                                 {repo.private ? (
-                                  <Lock className="h-4 w-4 text-yellow-400" />
+                                  <div className="flex items-center space-x-1">
+                                    <Lock className="h-4 w-4 text-yellow-400" />
+                                    <span className="text-xs bg-yellow-500/20 text-yellow-300 px-2 py-1 rounded">Private</span>
+                                  </div>
                                 ) : (
-                                  <Globe className="h-4 w-4 text-emerald-400" />
+                                  <div className="flex items-center space-x-1">
+                                    <Globe className="h-4 w-4 text-emerald-400" />
+                                    <span className="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-1 rounded">Public</span>
+                                  </div>
                                 )}
                                 {repo.archived && (
                                   <span className="px-2 py-1 text-xs bg-gray-600 text-gray-300 rounded">
                                     Archived
                                   </span>
                                 )}
-                              </div>
-                              
+                              </div>                              
                               {repo.description && (
-                                <p className="text-sm text-gray-400 mb-3">{repo.description}</p>
+                                <p className="text-sm text-gray-400 mb-3 leading-relaxed">{repo.description}</p>
                               )}
                               
                               <div className="flex items-center space-x-4 text-sm text-gray-400">
                                 {repo.language && (
                                   <div className="flex items-center space-x-1">
                                     <div className="w-3 h-3 rounded-full bg-primary-500"></div>
-                                    <span>{repo.language}</span>
+                                    <span className="font-medium">{repo.language}</span>
                                   </div>
                                 )}
                                 
-                                <div className="flex items-center space-x-1">
+                                <div className="flex items-center space-x-1 hover:text-gray-300 transition-colors">
                                   <Star className="h-3 w-3" />
-                                  <span>{repo.stargazers_count}</span>
+                                  <span>{repo.stargazers_count.toLocaleString()}</span>
                                 </div>
                                 
-                                <div className="flex items-center space-x-1">
+                                <div className="flex items-center space-x-1 hover:text-gray-300 transition-colors">
                                   <GitFork className="h-3 w-3" />
-                                  <span>{repo.forks_count}</span>
+                                  <span>{repo.forks_count.toLocaleString()}</span>
                                 </div>
                                 
-                                <div className="flex items-center space-x-1">
+                                <div className="flex items-center space-x-1 hover:text-gray-300 transition-colors">
                                   <Calendar className="h-3 w-3" />
                                   <span>Updated {formatDate(repo.updated_at)}</span>
                                 </div>
@@ -449,13 +580,13 @@ const OnboardingConnectGitHub = () => {
                                   {repo.topics.slice(0, 3).map((topic) => (
                                     <span
                                       key={topic}
-                                      className="px-2 py-1 text-xs bg-primary-500/20 text-primary-300 rounded"
+                                      className="px-2 py-1 text-xs bg-primary-500/20 text-primary-300 rounded hover:bg-primary-500/30 transition-colors"
                                     >
                                       {topic}
                                     </span>
                                   ))}
                                   {repo.topics.length > 3 && (
-                                    <span className="px-2 py-1 text-xs bg-gray-600 text-gray-300 rounded">
+                                    <span className="px-2 py-1 text-xs bg-gray-600 text-gray-300 rounded hover:bg-gray-500 transition-colors">
                                       +{repo.topics.length - 3} more
                                     </span>
                                   )}
@@ -466,10 +597,8 @@ const OnboardingConnectGitHub = () => {
                         </div>
                       </div>
                     ))
-                  )}
-                </div>
-
-                {/* Pagination */}
+                  }
+                )               {/* Pagination */}
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between border-t border-gray-700 pt-4">
                     <div className="text-sm text-gray-400">
@@ -477,19 +606,27 @@ const OnboardingConnectGitHub = () => {
                     </div>
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setCurrentPage(prev => Math.max(prev - 1, 1));
+                        }}
                         disabled={currentPage === 1}
-                        className="px-3 py-1 text-sm bg-gray-700 text-white rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 text-sm bg-gray-800/50 border border-gray-600 text-white rounded-lg hover:bg-gray-700 hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-800/50 disabled:hover:border-gray-600 transition-all duration-200"
                       >
                         Previous
                       </button>
-                      <span className="px-3 py-1 text-sm text-gray-300">
-                        {currentPage} of {totalPages}
-                      </span>
+                      <div className="flex items-center px-3 py-2 text-sm text-gray-300 bg-gray-800/30 border border-gray-600 rounded-lg">
+                        <span className="font-medium">{currentPage}</span>
+                        <span className="mx-1 text-gray-500">of</span>
+                        <span className="font-medium">{totalPages}</span>
+                      </div>
                       <button
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setCurrentPage(prev => Math.min(prev + 1, totalPages));
+                        }}
                         disabled={currentPage === totalPages}
-                        className="px-3 py-1 text-sm bg-gray-700 text-white rounded hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="px-4 py-2 text-sm bg-gray-800/50 border border-gray-600 text-white rounded-lg hover:bg-gray-700 hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-800/50 disabled:hover:border-gray-600 transition-all duration-200"
                       >
                         Next
                       </button>
@@ -497,19 +634,16 @@ const OnboardingConnectGitHub = () => {
                   </div>
                 )}
               </>
-            )}
-
-            {/* Summary and Continue Button */}
+            )}            {/* Summary and Continue Button */}
             <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-700">
-              <div className="text-sm text-gray-400">
-                {selectedRepos.length} of {repositories.length} repositories selected
-              </div>
+             
               <button
-                className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={selectedRepos.length === 0}
+                onClick={handleContinueToProjectSetup}
+                className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-primary-500/25 transition-all duration-300 flex items-center space-x-2"
+                disabled={selectedRepo.length === 0}
               >
-                Continue to Project Setup
-                <ArrowRight className="h-4 w-4 ml-2" />
+                <span>Continue to Project Setup</span>
+                <ArrowRight className="h-4 w-4" />
               </button>
             </div>
           </div>
