@@ -2,12 +2,13 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
+
 // Import routes
 import authRouter from './routes/authRoute';
+import { API_PREFIX, PORT } from './globle';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const API_PREFIX = '/api/v1';
+
 
 dotenv.config();
 
