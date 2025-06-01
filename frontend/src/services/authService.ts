@@ -1,21 +1,21 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-interface LoginData {
+export interface LoginData {
   username: string;
   password: string;
 }
 
-interface RegisterData {
+export interface RegisterData {
   username: string;
   password: string;
 }
 
-interface AuthResponse {
+export interface AuthResponse {
   message: string;
   token: string;
 }
 
-interface ApiError {
+export interface ApiError {
   message: string;
 }
 
@@ -70,4 +70,3 @@ class AuthService {
 }
 
 export const authService = new AuthService();
-export type { LoginData, RegisterData, AuthResponse, ApiError };

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Alert from '../../components/ui/Alert';
-import { authService } from '../../services/authService';
+import { useAuth } from '../../hooks/useAuth';
 import type { RegisterData } from '../../services/authService';
 
 interface RegisterFormData extends RegisterData {
@@ -19,6 +19,7 @@ const Register: React.FC = () => {
   const [errors, setErrors] = useState<Partial<RegisterFormData>>({});
   const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [loading, setLoading] = useState(false);
+  const { register: authRegister } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,9 +54,7 @@ const Register: React.FC = () => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  };  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAlert(null);
 
@@ -67,13 +66,12 @@ const Register: React.FC = () => {
 
     try {
       const { confirmPassword, ...registerData } = formData;
-      const response = await authService.register(registerData);
-      authService.setToken(response.token);
+      const response = await authRegister(registerData);
       setAlert({ type: 'success', message: response.message });
       
-      // Redirect to dashboard or home page after successful registration
+      // Redirect to dashboard
       setTimeout(() => {
-        navigate('/dashboard'); // You can change this to your desired route
+        navigate('/dashboard');
       }, 1000);
     } catch (error) {
       setAlert({

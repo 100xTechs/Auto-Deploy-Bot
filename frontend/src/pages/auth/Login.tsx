@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Alert from '../../components/ui/Alert';
-import { authService } from '../../services/authService';
+import { useAuth } from '../../hooks/useAuth';
 import type { LoginData } from '../../services/authService';
 
 const Login: React.FC = () => {
@@ -14,6 +14,7 @@ const Login: React.FC = () => {
   const [errors, setErrors] = useState<Partial<LoginData>>({});
   const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [loading, setLoading] = useState(false);
+  const { login: authLogin } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,9 +39,7 @@ const Login: React.FC = () => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  };  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAlert(null);
 
@@ -51,13 +50,12 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await authService.login(formData);
-      authService.setToken(response.token);
+      const response = await authLogin(formData);
       setAlert({ type: 'success', message: response.message });
       
-      // Redirect to dashboard or home page after successful login
+      // Redirect to dashboard
       setTimeout(() => {
-        navigate('/dashboard'); // You can change this to your desired route
+        navigate('/dashboard');
       }, 1000);
     } catch (error) {
       setAlert({
