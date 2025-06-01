@@ -105,10 +105,8 @@ const Dashboard: React.FC = () => {
                 onClose={() => setAlert(null)}
               />
             </div>
-          )}
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          )}          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
@@ -121,6 +119,24 @@ const Dashboard: React.FC = () => {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500">Total Projects</p>
                   <p className="text-2xl font-semibold text-gray-900">{projects.projects.length}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.102m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Connected Webhooks</p>
+                  <p className="text-2xl font-semibold text-gray-900">
+                    {projects.projects.filter(p => p.webhookConnected).length}
+                  </p>
                 </div>
               </div>
             </div>
@@ -179,6 +195,16 @@ const Dashboard: React.FC = () => {
                         <h4 className="text-sm font-medium text-gray-900">{project.name}</h4>
                         <p className="text-sm text-gray-500">{project.githubRepo}</p>
                         <p className="text-xs text-gray-400">Branch: {project.githubBranch}</p>
+                        <div className="flex items-center mt-1">
+                          <span className="text-xs text-gray-500">Webhook:</span>
+                          <span className={`ml-1 text-xs font-medium ${
+                            project.webhookConnected 
+                              ? 'text-green-600' 
+                              : 'text-yellow-600'
+                          }`}>
+                            {project.webhookConnected ? 'Connected' : 'Not Connected'}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className="px-2 py-1 text-xs font-medium rounded-full text-blue-600 bg-blue-100">
