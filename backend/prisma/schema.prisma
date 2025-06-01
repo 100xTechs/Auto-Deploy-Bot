@@ -33,6 +33,7 @@ model Project {
   githubBranch String      @default("main")
   githubToken  String?     // If you use API instead of webhook
   webhookSecret String?
+  webhookConnected Boolean @default(false)
 
   user         User        @relation(fields: [userId], references: [id])
   userId       String
@@ -80,7 +81,7 @@ model Deployment {
 
 model WebhookEvent {
   id           String     @id @default(uuid())
-  eventType    String     // push, pull_request, etc.
+  event        String     // push, pull_request, etc.
   payload      Json
   receivedAt   DateTime   @default(now())
 
