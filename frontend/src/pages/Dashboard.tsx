@@ -4,31 +4,58 @@ import { projectsState, deploymentsState } from '../store/atoms';
 import { useAuth } from '../hooks/useAuth';
 import Button from '../components/ui/Button';
 import Alert from '../components/ui/Alert';
+import AddProjectModal from '../components/modals/AddProjectModal';
+import { apiService } from '../services/apiService';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const [projects, setProjects] = useRecoilState(projectsState);
   const [deployments, setDeployments] = useRecoilState(deploymentsState);
   const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false);
+
   const handleLogout = () => {
     logout();
+  };  const loadProjects = async () => {
+    try {
+      setProjects(prev => ({ ...prev, loading: true }));
+      const response = await apiService.getProjects();
+      setProjects(prev => ({ ...prev, projects: response.projects, loading: false }));
+    } catch (error) {
+      console.error('Failed to load projects:', error);
+      setAlert({
+        type: 'error',
+        message: 'Failed to load projects'
+      });
+      setProjects(prev => ({ ...prev, loading: false }));
+    }
   };
 
-  const mockProjects = [
-    { id: '1', name: 'My Web App', githubRepo: 'user/webapp', status: 'active' },
-    { id: '2', name: 'API Server', githubRepo: 'user/api', status: 'pending' },
-  ];
-
-  const mockDeployments = [
-    { id: '1', projectName: 'My Web App', status: 'SUCCESS', commitHash: 'abc123', deployedAt: '2024-01-15' },
-    { id: '2', projectName: 'API Server', status: 'PENDING', commitHash: 'def456', deployedAt: '2024-01-15' },
-  ];
+  const loadDeployments = async () => {
+    try {
+      setDeployments(prev => ({ ...prev, loading: true }));
+      const response = await apiService.getDeployments();
+      setDeployments(prev => ({ ...prev, deployments: response.deployments, loading: false }));
+    } catch (error) {
+      console.error('Failed to load deployments:', error);
+      setAlert({
+        type: 'error',
+        message: 'Failed to load deployments'
+      });
+      setDeployments(prev => ({ ...prev, loading: false }));
+    }
+  };
 
   useEffect(() => {
-    // Simulate loading projects and deployments
-    setProjects(prev => ({ ...prev, projects: mockProjects, loading: false }));
-    setDeployments(prev => ({ ...prev, deployments: mockDeployments, loading: false }));
+    loadProjects();
+    loadDeployments();
   }, [setProjects, setDeployments]);
+
+  const handleProjectAdded = () => {
+    setAlert({ type: 'success', message: 'Project created successfully!' });
+    setIsAddProjectModalOpen(false);
+    loadProjects(); // Reload projects after adding
+  };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -54,10 +81,9 @@ const Dashboard: React.FC = () => {
               <h1 className="text-3xl font-bold text-gray-900">Auto Deploy Bot</h1>
               <p className="text-gray-600">Welcome back, {user?.username}</p>
             </div>
-            <div className="flex space-x-4">
-              <Button
+            <div className="flex space-x-4">              <Button
                 variant="outline"
-                onClick={() => setAlert({ type: 'success', message: 'Feature coming soon!' })}
+                onClick={() => setIsAddProjectModalOpen(true)}
               >
                 New Project
               </Button>
@@ -147,16 +173,16 @@ const Dashboard: React.FC = () => {
                   <p className="text-gray-500">No projects found. Create your first project to get started!</p>
                 </div>
               ) : (
-                projects.projects.map((project) => (
-                  <div key={project.id} className="px-6 py-4 hover:bg-gray-50">
+                projects.projects.map((project) => (                  <div key={project.id} className="px-6 py-4 hover:bg-gray-50">
                     <div className="flex items-center justify-between">
                       <div>
                         <h4 className="text-sm font-medium text-gray-900">{project.name}</h4>
                         <p className="text-sm text-gray-500">{project.githubRepo}</p>
+                        <p className="text-xs text-gray-400">Branch: {project.githubBranch}</p>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(project.status)}`}>
-                          {project.status}
+                        <span className="px-2 py-1 text-xs font-medium rounded-full text-blue-600 bg-blue-100">
+                          Active
                         </span>
                         <Button size="sm" variant="outline">
                           Manage
@@ -180,14 +206,18 @@ const Dashboard: React.FC = () => {
                   <p className="text-gray-500">No deployments yet.</p>
                 </div>
               ) : (
-                deployments.deployments.map((deployment) => (
-                  <div key={deployment.id} className="px-6 py-4 hover:bg-gray-50">
+                deployments.deployments.map((deployment) => (                  <div key={deployment.id} className="px-6 py-4 hover:bg-gray-50">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h4 className="text-sm font-medium text-gray-900">{deployment.projectName}</h4>
+                        <h4 className="text-sm font-medium text-gray-900">
+                          {deployment.project?.name || 'Unknown Project'}
+                        </h4>
                         <p className="text-sm text-gray-500">
-                          Commit: {deployment.commitHash} • {deployment.deployedAt}
+                          Commit: {deployment.commitHash} • {deployment.deployedAt || deployment.createdAt}
                         </p>
+                        {deployment.commitMsg && (
+                          <p className="text-xs text-gray-400">{deployment.commitMsg}</p>
+                        )}
                       </div>
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(deployment.status)}`}>
                         {deployment.status}
@@ -196,10 +226,16 @@ const Dashboard: React.FC = () => {
                   </div>
                 ))
               )}
-            </div>
-          </div>
+            </div>          </div>
         </div>
       </main>
+
+      {/* Add Project Modal */}
+      <AddProjectModal
+        isOpen={isAddProjectModalOpen}
+        onClose={() => setIsAddProjectModalOpen(false)}
+        onProjectAdded={handleProjectAdded}
+      />
     </div>
   );
 };

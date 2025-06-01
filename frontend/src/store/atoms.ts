@@ -1,4 +1,5 @@
 import { atom } from 'recoil';
+import type { Project, Deployment } from '../services/apiService';
 
 export interface User {
   id: string;
@@ -18,16 +19,16 @@ export const authState = atom({
 export const projectsState = atom({
   key: 'projectsState',
   default: {
-    projects: [] as any[],
+    projects: [] as Project[],
     loading: false,
-    selectedProject: null as any,
+    selectedProject: null as Project | null,
   },
 });
 
 export const deploymentsState = atom({
   key: 'deploymentsState',
   default: {
-    deployments: [] as any[],
+    deployments: [] as Deployment[],
     loading: false,
   },
 });
