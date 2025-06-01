@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { prisma } from "../globle";
 
 // Get all deployments for a user
-export const getDeployments = async (req: Request, res: Response) => {
+export const getDeployments = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).user.id;
 
@@ -25,7 +25,7 @@ export const getDeployments = async (req: Request, res: Response) => {
 };
 
 // Get single deployment
-export const getDeployment = async (req: any, res: any) => {
+export const getDeployment = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const userId = (req as any).user.id;
@@ -40,7 +40,8 @@ export const getDeployment = async (req: any, res: any) => {
     });
 
     if (!deployment) {
-      return res.status(404).json({ message: "Deployment not found" });
+      res.status(404).json({ message: "Deployment not found" });
+      return;
     }
 
     res.status(200).json({ deployment });
@@ -51,13 +52,14 @@ export const getDeployment = async (req: any, res: any) => {
 };
 
 // Create manual deployment
-export const createDeployment = async (req: any, res: any) => {
+export const createDeployment = async (req: Request, res: Response): Promise<void> => {
   try {
     const { projectId, commitHash, commitMsg } = req.body;
     const userId = (req as any).user.id;
 
     if (!projectId || !commitHash) {
-      return res.status(400).json({ message: "Project ID and commit hash are required" });
+      res.status(400).json({ message: "Project ID and commit hash are required" });
+      return;
     }
 
     // Verify project ownership
@@ -66,7 +68,8 @@ export const createDeployment = async (req: any, res: any) => {
     });
 
     if (!project) {
-      return res.status(404).json({ message: "Project not found" });
+      res.status(404).json({ message: "Project not found" });
+      return;
     }
 
     const deployment = await prisma.deployment.create({
@@ -96,14 +99,15 @@ export const createDeployment = async (req: any, res: any) => {
 };
 
 // Update deployment status
-export const updateDeploymentStatus = async (req: any, res: any) => {
+export const updateDeploymentStatus = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { status } = req.body;
     const userId = (req as any).user.id;
 
     if (!status) {
-      return res.status(400).json({ message: "Status is required" });
+      res.status(400).json({ message: "Status is required" });
+      return;
     }
 
     const existingDeployment = await prisma.deployment.findFirst({
@@ -111,7 +115,8 @@ export const updateDeploymentStatus = async (req: any, res: any) => {
     });
 
     if (!existingDeployment) {
-      return res.status(404).json({ message: "Deployment not found" });
+      res.status(404).json({ message: "Deployment not found" });
+      return;
     }
 
     const deployment = await prisma.deployment.update({

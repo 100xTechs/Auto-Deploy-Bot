@@ -84,12 +84,11 @@ export const createProject = async (req: Request, res: Response): Promise<void> 
         webhookSecret,
         userId
       }
-    });
-
-    res.status(201).json({ 
+    });    res.status(201).json({ 
       message: "Project created successfully", 
       project,
-      webhookUrl: `${process.env.WEBHOOK_BASE_URL || 'http://localhost:4000'}/api/webhook/github/${project.id}`
+      webhookUrl: `${process.env.WEBHOOK_BASE_URL || 'http://localhost:4000'}/api/webhook/github/${project.id}`,
+      webhookSecret: webhookSecret
     });
   } catch (error) {
     console.error("Create project error:", error);
