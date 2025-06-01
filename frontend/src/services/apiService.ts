@@ -6,6 +6,7 @@ export interface Project {
   githubRepo: string;
   githubBranch: string;
   webhookSecret?: string;
+  webhookConnected?: boolean;
   createdAt: string;
   updatedAt: string;
   deployments?: Deployment[];
@@ -72,9 +73,8 @@ class ApiService {
   async getProject(id: string): Promise<{ project: Project }> {
     return this.makeRequest<{ project: Project }>(`/api/v1/projects/${id}`);
   }
-
-  async createProject(data: CreateProjectData): Promise<{ message: string; project: Project; webhookUrl: string }> {
-    return this.makeRequest<{ message: string; project: Project; webhookUrl: string }>('/api/v1/projects', {
+  async createProject(data: CreateProjectData): Promise<{ message: string; project: Project; webhookUrl: string; webhookSecret: string }> {
+    return this.makeRequest<{ message: string; project: Project; webhookUrl: string; webhookSecret: string }>('/api/v1/projects', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -86,11 +86,16 @@ class ApiService {
       body: JSON.stringify(data),
     });
   }
-
   async deleteProject(id: string): Promise<{ message: string }> {
     return this.makeRequest<{ message: string }>(`/api/v1/projects/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  // Check webhook connection status for a project
+  async checkWebhookStatus(projectId: string): Promise<{ webhookConnected: boolean }> {
+    const response = await this.getProject(projectId);
+    return { webhookConnected: response.project.webhookConnected || false };
   }
 
   // Deployment endpoints
